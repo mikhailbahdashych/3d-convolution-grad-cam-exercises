@@ -53,7 +53,7 @@ class Config:
             "augmentation": {
                 "spatial": {
                     "horizontal_flip": 0.5,
-                    "rotation_degrees": 10,
+                    "rotation_degrees": 0,  # Disabled for speed (can re-enable later)
                     "color_jitter": [0.2, 0.2, 0.2, 0.1],
                     "random_crop_scale": [0.8, 1.0],
                 },
@@ -74,10 +74,10 @@ class Config:
             "training": {
                 "batch_size": 8,
                 "num_epochs": 100,
-                "num_workers": 8,
+                "num_workers": 4,
                 "pin_memory": True,
                 "persistent_workers": True,
-                "prefetch_factor": 2,
+                "prefetch_factor": 4,
                 "optimizer": {
                     "name": "AdamW",
                     "lr": 0.0001,
