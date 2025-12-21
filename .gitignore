@@ -1,0 +1,17 @@
+Tematy_Proj_CV_2024-2025.pdf
+.venv
+__pycache__
+dataset
+.claude/
+CLAUDE.md
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+*.swp
+*.swo
+*~
+.ipynb_checkpoints/
+*.log
+*.mp4
+*.avi
