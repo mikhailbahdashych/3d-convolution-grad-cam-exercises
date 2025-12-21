@@ -234,7 +234,7 @@ def main():
         optimizer=optimizer,
         criterion=criterion,
         device=device,
-        config=config.config,
+        config=config,
         scheduler=scheduler,
         logger=logger,
     )
