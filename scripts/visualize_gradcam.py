@@ -191,7 +191,7 @@ def main():
         logger.info(
             f"Sample {num_processed + 1}/{args.num_samples}: "
             f"True={true_label}, Pred={predicted}, "
-            f"{'✓' if is_correct else '✗'} -> {sample_dir.name}"
+            f"{'+' if is_correct else '-'} -> {sample_dir.name}"
         )
 
         num_processed += 1

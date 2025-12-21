@@ -269,7 +269,7 @@ class Trainer:
                     "best_model_loss.pth",
                     config=self.config,
                 )
-                self.logger.info(f"✓ Saved best model (loss: {val_metrics['loss']:.4f})")
+                self.logger.info(f"+ Saved best model (loss: {val_metrics['loss']:.4f})")
 
             if is_best_acc:
                 self.best_val_acc = val_metrics["accuracy"]
@@ -282,7 +282,7 @@ class Trainer:
                     "best_model_acc.pth",
                     config=self.config,
                 )
-                self.logger.info(f"✓ Saved best model (acc: {val_metrics['accuracy']:.2f}%)")
+                self.logger.info(f"+ Saved best model (acc: {val_metrics['accuracy']:.2f}%)")
 
             # Periodic checkpoint
             if (epoch + 1) % self.save_freq == 0:

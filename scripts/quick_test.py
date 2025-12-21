@@ -18,9 +18,9 @@ def run_command(cmd, description):
     result = subprocess.run(cmd, shell=True, capture_output=False, text=True)
 
     if result.returncode == 0:
-        print(f"\n✓ {description} - PASSED")
+        print(f"\n+ {description} - PASSED")
     else:
-        print(f"\n✗ {description} - FAILED")
+        print(f"\n- {description} - FAILED")
         return False
 
     return True
@@ -32,10 +32,10 @@ def main():
     print("="*60)
 
     tests = [
-        ("source .venv/bin/activate && python scripts/test_training_init.py",
+        ("python scripts/test_training_init.py",
          "Training initialization"),
 
-        ("source .venv/bin/activate && python scripts/test_dataset.py",
+        ("python scripts/test_dataset.py",
          "Dataset loading"),
     ]
 
@@ -50,14 +50,14 @@ def main():
     print("="*60)
 
     for desc, result in results:
-        status = "✓ PASSED" if result else "✗ FAILED"
+        status = "+ PASSED" if result else "- FAILED"
         print(f"{desc:.<50} {status}")
 
     all_passed = all(r for _, r in results)
 
     if all_passed:
         print("\n" + "="*60)
-        print("ALL TESTS PASSED! ✓")
+        print("ALL TESTS PASSED! +")
         print("="*60)
         print("\nYou're ready to train!")
         print("\nNext steps:")
@@ -66,7 +66,7 @@ def main():
         print("  3. Monitor training:       tensorboard --logdir outputs/logs")
     else:
         print("\n" + "="*60)
-        print("SOME TESTS FAILED ✗")
+        print("SOME TESTS FAILED -")
         print("="*60)
         print("Please check the errors above.")
 
