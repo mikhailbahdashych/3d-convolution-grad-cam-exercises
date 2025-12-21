@@ -77,6 +77,8 @@ def create_data_loaders(config):
         shuffle=shuffle if sampler is None else False,
         num_workers=config.get("training.num_workers"),
         pin_memory=config.get("training.pin_memory"),
+        persistent_workers=config.get("training.persistent_workers", True),
+        prefetch_factor=config.get("training.prefetch_factor", 2),
     )
 
     val_loader = DataLoader(
@@ -85,6 +87,8 @@ def create_data_loaders(config):
         shuffle=False,
         num_workers=config.get("training.num_workers"),
         pin_memory=config.get("training.pin_memory"),
+        persistent_workers=config.get("training.persistent_workers", True),
+        prefetch_factor=config.get("training.prefetch_factor", 2),
     )
 
     # Get class weights for loss function

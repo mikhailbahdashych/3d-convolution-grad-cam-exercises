@@ -74,8 +74,10 @@ class Config:
             "training": {
                 "batch_size": 8,
                 "num_epochs": 100,
-                "num_workers": 4,
+                "num_workers": 8,
                 "pin_memory": True,
+                "persistent_workers": True,
+                "prefetch_factor": 2,
                 "optimizer": {
                     "name": "AdamW",
                     "lr": 0.0001,
