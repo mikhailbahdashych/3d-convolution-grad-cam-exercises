@@ -7,6 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 from pathlib import Path
 from tqdm import tqdm
 import time
+import csv
 from typing import Dict, Optional
 
 from ..utils.checkpointing import save_checkpoint
@@ -62,6 +63,10 @@ class Trainer:
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
         self.save_freq = config.get("checkpoint.save_freq", 10)
 
+        # Metrics directory for CSV files
+        self.metrics_dir = Path(config.get("logging.log_dir", "outputs/logs")) / "metrics"
+        self.metrics_dir.mkdir(parents=True, exist_ok=True)
+
         # Early stopping
         self.early_stopping_patience = config.get("training.early_stopping.patience", 10)
         self.early_stopping_min_delta = config.get("training.early_stopping.min_delta", 0.001)
@@ -82,6 +87,9 @@ class Trainer:
         self.train_losses = []
         self.val_losses = []
         self.val_accuracies = []
+        self.train_accuracies = []
+        self.learning_rates = []
+        self.per_class_accuracies = []  # List of dicts, one per epoch
 
     def train_epoch(self) -> Dict[str, float]:
         """
@@ -196,6 +204,44 @@ class Trainer:
             "per_class_accuracy": per_class_acc,
         }
 
+    def save_metrics(self):
+        """Save training metrics to CSV files."""
+        # Save main metrics (loss, accuracy, learning rate)
+        metrics_file = self.metrics_dir / "training_metrics.csv"
+        with open(metrics_file, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                "epoch",
+                "train_loss",
+                "train_accuracy",
+                "val_loss",
+                "val_accuracy",
+                "learning_rate",
+            ])
+            for i in range(len(self.train_losses)):
+                writer.writerow([
+                    i + 1,
+                    self.train_losses[i],
+                    self.train_accuracies[i] if i < len(self.train_accuracies) else "",
+                    self.val_losses[i] if i < len(self.val_losses) else "",
+                    self.val_accuracies[i] if i < len(self.val_accuracies) else "",
+                    self.learning_rates[i] if i < len(self.learning_rates) else "",
+                ])
+
+        # Save per-class accuracy
+        if self.per_class_accuracies:
+            per_class_file = self.metrics_dir / "per_class_accuracy.csv"
+            num_classes = self.config.get("model.num_classes", 17)
+            with open(per_class_file, "w", newline="") as f:
+                writer = csv.writer(f)
+                header = ["epoch"] + [f"class_{i}" for i in range(num_classes)]
+                writer.writerow(header)
+                for epoch, class_accs in enumerate(self.per_class_accuracies):
+                    row = [epoch + 1]
+                    for i in range(num_classes):
+                        row.append(class_accs.get(i, ""))
+                    writer.writerow(row)
+
     def train(self):
         """Main training loop."""
         self.logger.info(f"Starting training for {self.num_epochs} epochs")
@@ -211,11 +257,20 @@ class Trainer:
             # Train epoch
             train_metrics = self.train_epoch()
             self.train_losses.append(train_metrics["loss"])
+            self.train_accuracies.append(train_metrics["accuracy"])
 
             # Validate
             val_metrics = self.validate()
             self.val_losses.append(val_metrics["loss"])
             self.val_accuracies.append(val_metrics["accuracy"])
+            self.per_class_accuracies.append(val_metrics["per_class_accuracy"])
+
+            # Track learning rate
+            current_lr = self.optimizer.param_groups[0]["lr"]
+            self.learning_rates.append(current_lr)
+
+            # Save metrics to CSV after each epoch
+            self.save_metrics()
 
             # Log metrics
             self.logger.info(

@@ -229,6 +229,35 @@ Metrics tracked:
 - Per-class accuracy
 - Learning rate schedule
 
+### Step 5b: Plot Training Metrics
+
+The training process automatically saves metrics to CSV files after each epoch in `outputs/logs/metrics/`. Generate publication-ready plots from these metrics:
+
+```bash
+# Generate all plots with default settings
+python scripts/plot_training.py
+
+# Specify custom directories
+python scripts/plot_training.py --metrics-dir outputs/logs/metrics --save-dir outputs/plots
+
+# Plot only top 5 classes by accuracy
+python scripts/plot_training.py --top-classes 5
+```
+
+Generated plots:
+- `loss_curves.png` - Training and validation loss over time
+- `accuracy_curves.png` - Training and validation accuracy over time
+- `learning_rate.png` - Learning rate schedule
+- `combined_metrics.png` - All metrics in a single figure including generalization gap
+- `per_class_accuracy.png` - Per-class accuracy evolution (all classes)
+- `per_class_accuracy_top10.png` - Top 10 performing classes
+- `per_class_heatmap.png` - Heatmap showing per-class accuracy over epochs
+- `final_class_comparison.png` - Bar chart of final accuracy per class
+
+CSV files saved to `outputs/logs/metrics/`:
+- `training_metrics.csv` - Epoch-level loss, accuracy, and learning rate
+- `per_class_accuracy.csv` - Per-class accuracy for every epoch
+
 ### Step 6: Evaluate Model
 
 After training completes, evaluate on test set:
