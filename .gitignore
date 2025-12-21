@@ -1,7 +1,7 @@
 Tematy_Proj_CV_2024-2025.pdf
 .venv
 __pycache__
-dataset
+dataset/*
 .claude/
 CLAUDE.md
 *.pyc

@@ -19,11 +19,11 @@ def main():
 
     # Load config
     config = load_config()
-    print("✓ Config loaded")
+    print("+ Config loaded")
 
     # Get device
     device = get_device()
-    print(f"✓ Device: {device}")
+    print(f"+ Device: {device}")
 
     # Create small dataset (just 10 samples for testing)
     transform = get_train_transforms(config)
@@ -36,44 +36,44 @@ def main():
         transform=transform,
         filter_background=True,
     )
-    print(f"✓ Dataset created: {len(dataset)} clips")
+    print(f"+ Dataset created: {len(dataset)} clips")
 
     # Test loading one sample
     clip, label, metadata = dataset[0]
-    print(f"✓ Sample loaded: clip shape={clip.shape}, label={label}")
+    print(f"+ Sample loaded: clip shape={clip.shape}, label={label}")
 
     # Create model
     model = build_c3d(config)
-    print(f"✓ Model created: {count_parameters(model):,} parameters")
+    print(f"+ Model created: {count_parameters(model):,} parameters")
 
     # Test forward pass
     model = model.to(device)
     clip_batch = clip.unsqueeze(0).to(device)
     output = model(clip_batch)
-    print(f"✓ Forward pass: output shape={output.shape}")
+    print(f"+ Forward pass: output shape={output.shape}")
 
     # Create loss function
     class_weights = dataset.get_class_weights().to(device)
     criterion = build_loss_fn(config, class_weights)
-    print(f"✓ Loss function: {type(criterion).__name__}")
+    print(f"+ Loss function: {type(criterion).__name__}")
 
     # Test loss computation
     label_tensor = torch.tensor([label]).to(device)
     loss = criterion(output, label_tensor)
-    print(f"✓ Loss computed: {loss.item():.4f}")
+    print(f"+ Loss computed: {loss.item():.4f}")
 
     # Create optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
-    print(f"✓ Optimizer created")
+    print(f"+ Optimizer created")
 
     # Test backward pass
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
-    print(f"✓ Backward pass successful")
+    print(f"+ Backward pass successful")
 
     print("\n" + "="*60)
-    print("ALL TESTS PASSED! ✓")
+    print("ALL TESTS PASSED! +")
     print("="*60)
     print("\nYou can now start training with:")
     print("  python scripts/train.py --epochs 2")

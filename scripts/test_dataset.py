@@ -51,7 +51,7 @@ def main():
         if batch_idx >= 2:
             break
 
-    print("\n✓ Dataset test passed!")
+    print("\n+ Dataset test passed!")
 
 if __name__ == "__main__":
     main()

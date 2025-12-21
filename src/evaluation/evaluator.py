@@ -136,7 +136,7 @@ class Evaluator:
         per_class_csv = self.save_dir / "per_class_metrics.csv"
         per_class_df.to_csv(per_class_csv, index_label="class_id")
 
-        print(f"\n✓ Metrics saved to {self.save_dir}")
+        print(f"\n+ Metrics saved to {self.save_dir}")
 
     def _save_predictions(self):
         """Save predictions to CSV."""
@@ -150,7 +150,7 @@ class Evaluator:
         predictions_file = self.save_dir / "predictions.csv"
         df.to_csv(predictions_file, index=False)
 
-        print(f"✓ Predictions saved to {predictions_file}")
+        print(f"+ Predictions saved to {predictions_file}")
 
     def _save_confusion_matrix(self):
         """Save confusion matrix plots."""
@@ -169,7 +169,7 @@ class Evaluator:
         cm_df = pd.DataFrame(cm)
         cm_df.to_csv(cm_csv, index=True, header=True)
 
-        print(f"✓ Confusion matrices saved to {self.save_dir}")
+        print(f"+ Confusion matrices saved to {self.save_dir}")
 
     def analyze_errors(self, top_k: int = 10):
         """
