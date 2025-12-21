@@ -38,7 +38,7 @@ def create_data_loaders(config):
         spatial_size=config.get("preprocessing.spatial_size"),
         transform=train_transform,
         filter_background=True,
-        cache_videos=False,
+        cache_videos=True,  # Cache videos in RAM for much faster loading
     )
 
     val_dataset = ExerciseVideoDataset(
@@ -49,7 +49,7 @@ def create_data_loaders(config):
         spatial_size=config.get("preprocessing.spatial_size"),
         transform=val_transform,
         filter_background=True,
-        cache_videos=False,
+        cache_videos=True,  # Cache videos in RAM for much faster loading
     )
 
     logger.info(f"Train dataset: {len(train_dataset)} clips")
