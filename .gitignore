@@ -12,6 +12,9 @@ CLAUDE.md
 *.swo
 *~
 .ipynb_checkpoints/
-*.log
 *.mp4
 *.avi
+outputs/checkpoints/
+outputs/logs/events.out.tfevents.1766409495.e420663299e2.4444.0
+outputs/logs/*.log
+outputs/visualizations/**/*.mp4

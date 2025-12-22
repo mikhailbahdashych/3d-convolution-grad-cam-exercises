@@ -1,0 +1,8 @@
+EVALUATION RESULTS
+============================================================
+Overall Accuracy:      90.50%
+Mean Class Accuracy:   89.09%
+Top-3 Accuracy:        98.41%
+Mean Precision:        84.08%
+Mean Recall:           83.85%
+Mean F1-Score:         83.61%
