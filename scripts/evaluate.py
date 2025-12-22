@@ -65,7 +65,7 @@ def main():
         spatial_size=config.get("preprocessing.spatial_size"),
         transform=val_transform,
         filter_background=True,
-        cache_videos=False,
+        cache_videos=True,
     )
 
     logger.info(f"Dataset size: {len(dataset)} clips")
