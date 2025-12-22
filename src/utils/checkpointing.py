@@ -65,7 +65,7 @@ def load_checkpoint(
     if device is None:
         device = torch.device("cpu")
 
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
 
     model.load_state_dict(checkpoint["model_state_dict"])
 
@@ -103,7 +103,7 @@ def get_best_checkpoint(save_dir: str, metric: str = "val_acc", mode: str = "max
 
     for checkpoint_path in checkpoint_files:
         try:
-            checkpoint = torch.load(checkpoint_path, map_location="cpu")
+            checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
             metrics = checkpoint.get("metrics", {})
 
             if metric in metrics:
@@ -142,7 +142,7 @@ def cleanup_checkpoints(save_dir: str, keep_best_n: int = 3, metric: str = "val_
     checkpoints_with_metrics = []
     for checkpoint_path in checkpoint_files:
         try:
-            checkpoint = torch.load(checkpoint_path, map_location="cpu")
+            checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
             metrics = checkpoint.get("metrics", {})
             if metric in metrics:
                 checkpoints_with_metrics.append((checkpoint_path, metrics[metric]))
