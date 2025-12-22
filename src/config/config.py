@@ -73,7 +73,7 @@ class Config:
             },
             "training": {
                 "batch_size": 8,
-                "num_epochs": 100,
+                "num_epochs": 20,
                 "num_workers": 4,
                 "pin_memory": True,
                 "persistent_workers": True,
