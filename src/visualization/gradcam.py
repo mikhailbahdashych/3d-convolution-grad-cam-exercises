@@ -158,8 +158,8 @@ class VideoGradCAM:
         # Denormalize if needed
         if denormalize:
             clip = clip.clone()
-            mean_tensor = torch.tensor(mean).view(3, 1, 1, 1)
-            std_tensor = torch.tensor(std).view(3, 1, 1, 1)
+            mean_tensor = torch.tensor(mean).view(3, 1, 1, 1).to(clip.device)
+            std_tensor = torch.tensor(std).view(3, 1, 1, 1).to(clip.device)
             clip = clip * std_tensor + mean_tensor
             clip = torch.clamp(clip, 0, 1)
 
