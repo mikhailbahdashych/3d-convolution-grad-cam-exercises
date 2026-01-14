@@ -106,6 +106,7 @@ class Config:
             "sampling": {
                 "use_weighted_sampler": True,
                 "oversampling_factor": 1.0,
+                "downsample_class1": False,
             },
             "device": {
                 "use_cuda": True,
@@ -130,7 +131,7 @@ class Config:
                 "per_class_metrics": True,
             },
             "gradcam": {
-                "target_layer": "block5.conv2",
+                "target_layer": "block4",
                 "save_dir": "outputs/visualizations",
                 "num_samples": 20,
                 "overlay_alpha": 0.5,
