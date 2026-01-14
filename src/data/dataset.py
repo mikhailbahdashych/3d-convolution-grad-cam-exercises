@@ -7,6 +7,7 @@ import numpy as np
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict
 from collections import Counter
+import random
 
 from .utils import load_video, extract_clip, load_labels, get_subject_id
 
@@ -28,6 +29,7 @@ class ExerciseVideoDataset(Dataset):
         transform=None,
         filter_background: bool = True,
         cache_videos: bool = False,
+        downsample_class1: bool = False,
     ):
         """
         Initialize dataset.
@@ -41,6 +43,7 @@ class ExerciseVideoDataset(Dataset):
             transform: Optional transform to apply to clips
             filter_background: If True, only include clips with exercise labels (not -1)
             cache_videos: If True, cache all videos in memory (requires lots of RAM)
+            downsample_class1: If True, downsample Class 1 to match other classes
         """
         self.data_root = Path(data_root)
         self.split = split
@@ -50,6 +53,7 @@ class ExerciseVideoDataset(Dataset):
         self.transform = transform
         self.filter_background = filter_background
         self.cache_videos = cache_videos
+        self.downsample_class1 = downsample_class1
 
         # Paths
         self.video_dir = self.data_root / "dataset" / "anon"
@@ -124,9 +128,41 @@ class ExerciseVideoDataset(Dataset):
                     "label": int(label),
                 })
 
-                # Update label counts
-                if label != -1:
-                    self.label_counts[int(label)] += 1
+        # Apply downsampling to Class 1 if enabled
+        if self.downsample_class1:
+            self._downsample_class1()
+
+        # Update label counts after potential downsampling
+        for clip in self.clips:
+            if clip["label"] != -1:
+                self.label_counts[int(clip["label"])] += 1
+
+    def _downsample_class1(self):
+        """Downsample Class 1 to match the median count of other classes."""
+        # Separate clips by class
+        class1_clips = [c for c in self.clips if c["label"] == 1]
+        other_clips = [c for c in self.clips if c["label"] != 1]
+
+        if len(class1_clips) == 0:
+            return
+
+        # Calculate target count (median of other classes)
+        other_label_counts = Counter(c["label"] for c in other_clips if c["label"] != -1)
+        if len(other_label_counts) == 0:
+            return
+
+        counts = list(other_label_counts.values())
+        target_count = int(np.median(counts))
+
+        print(f"Downsampling Class 1: {len(class1_clips)} -> {target_count} clips")
+
+        # Randomly sample from Class 1
+        if len(class1_clips) > target_count:
+            random.shuffle(class1_clips)
+            class1_clips = class1_clips[:target_count]
+
+        # Rebuild clips list
+        self.clips = other_clips + class1_clips
 
     def _cache_all_videos(self):
         """Cache all videos in memory."""

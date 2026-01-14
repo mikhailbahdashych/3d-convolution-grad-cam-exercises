@@ -242,22 +242,22 @@ class VideoGradCAM:
         self.save_frames_as_video(combined_frames, save_path, fps)
 
 
-def get_target_layers(model: nn.Module, layer_name: str = "block5") -> List[nn.Module]:
+def get_target_layers(model: nn.Module, layer_name: str = "block4") -> List[nn.Module]:
     """
     Get target layers for GradCAM.
 
     Args:
         model: PyTorch model
-        layer_name: Name of block to target
+        layer_name: Name of block to target (block3=14x14, block4=7x7, block5=3x3 spatial)
 
     Returns:
         List of target layers
     """
     if layer_name == "block5":
-        return [model.block5[-2]]  # Last conv layer before pooling
+        return [model.block5[-2]]  # 3x3 spatial - very coarse
     elif layer_name == "block4":
-        return [model.block4[-2]]
+        return [model.block4[-2]]  # 7x7 spatial - good balance (default)
     elif layer_name == "block3":
-        return [model.block3[-2]]
+        return [model.block3[-2]]  # 14x14 spatial - best detail
     else:
         raise ValueError(f"Unknown layer name: {layer_name}")

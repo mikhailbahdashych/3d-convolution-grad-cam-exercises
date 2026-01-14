@@ -1,5 +1,0 @@
-Subject ID: 010_cxi86td1
-Start Index: 112
-True Label: 1
-Predicted Label: 1
-Correct: True

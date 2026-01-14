@@ -20,7 +20,7 @@ from src.training.losses import build_loss_fn
 from src.training.trainer import Trainer
 
 
-def create_data_loaders(config):
+def create_data_loaders(config, downsample_class1=False):
     """Create training and validation data loaders."""
     logger = setup_logger("data")
 
@@ -39,6 +39,7 @@ def create_data_loaders(config):
         transform=train_transform,
         filter_background=True,
         cache_videos=True,  # Cache videos in RAM for much faster loading
+        downsample_class1=downsample_class1,
     )
 
     val_dataset = ExerciseVideoDataset(
@@ -177,6 +178,7 @@ def main():
     parser.add_argument("--device", type=str, default=None, help="Device (cuda/mps/cpu)")
     parser.add_argument("--epochs", type=int, default=None, help="Number of epochs")
     parser.add_argument("--batch-size", type=int, default=None, help="Batch size")
+    parser.add_argument("--downsample-class1", action="store_true", help="Downsample Class 1 to match other classes")
     args = parser.parse_args()
 
     # Load configuration
@@ -211,7 +213,11 @@ def main():
         )
 
     # Create data loaders
-    train_loader, val_loader, class_weights = create_data_loaders(config)
+    if args.downsample_class1:
+        logger.info("Class 1 downsampling ENABLED - balancing class distribution")
+    train_loader, val_loader, class_weights = create_data_loaders(
+        config, downsample_class1=args.downsample_class1
+    )
 
     # Create model
     model = create_model(config, device)
