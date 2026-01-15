@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 import argparse
 import torch
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 import numpy as np
 
@@ -119,9 +120,10 @@ def main():
         clips = clips.to(device)
         labels = labels.to(device)
 
-        # Get prediction
+        # Get prediction and probabilities
         with torch.no_grad():
             outputs = model(clips)
+            probabilities = F.softmax(outputs, dim=1).cpu().numpy()[0]  # (num_classes,)
             predicted = outputs.argmax(dim=1).item()
 
         true_label = labels.item()
@@ -176,6 +178,20 @@ def main():
             original_frames,
             overlayed_frames,
             str(sample_dir / "side_by_side.mp4"),
+            fps=args.fps,
+        )
+
+        # Create visualization with probability chart
+        overlay_with_chart = gradcam.create_visualization_with_chart(
+            frames=overlayed_frames,
+            probabilities=probabilities,
+            true_label=true_label,
+            predicted_label=predicted,
+            chart_width=250,
+        )
+        gradcam.save_frames_as_video(
+            overlay_with_chart,
+            str(sample_dir / "overlay_with_probs.mp4"),
             fps=args.fps,
         )
 

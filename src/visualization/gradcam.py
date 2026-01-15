@@ -2,11 +2,16 @@
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 import cv2
 from typing import List, Optional, Tuple
 from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+import matplotlib
+matplotlib.use('Agg')  # Non-interactive backend
+import matplotlib.pyplot as plt
+from io import BytesIO
 
 
 class VideoGradCAM:
@@ -192,6 +197,133 @@ class VideoGradCAM:
         overlayed_frames = np.array(overlayed_frames)
 
         return original_frames, heatmap_frames, overlayed_frames
+
+    def create_probability_chart(
+        self,
+        probabilities: np.ndarray,
+        true_label: int,
+        predicted_label: int,
+        height: int = 400,
+        width: int = 300,
+    ) -> np.ndarray:
+        """
+        Create a horizontal bar chart showing class probabilities.
+
+        Args:
+            probabilities: Array of shape (num_classes,) with probabilities
+            true_label: Ground truth class (1-indexed)
+            predicted_label: Predicted class (1-indexed)
+            height: Height of the output image
+            width: Width of the output image
+
+        Returns:
+            RGB image of shape (height, width, 3)
+        """
+        num_classes = len(probabilities)
+
+        # Create figure with dark background
+        fig, ax = plt.subplots(figsize=(width/100, height/100), dpi=100)
+        fig.patch.set_facecolor('#1a1a2e')
+        ax.set_facecolor('#1a1a2e')
+
+        # Class labels (1-indexed for display)
+        class_labels = [f"Class {i+1}" for i in range(num_classes)]
+        y_pos = np.arange(num_classes)
+
+        # Create colors: green for true label, red for wrong prediction, blue for others
+        colors = []
+        for i in range(num_classes):
+            class_id = i + 1  # 1-indexed
+            if class_id == true_label and class_id == predicted_label:
+                colors.append('#00ff88')  # Green - correct prediction
+            elif class_id == true_label:
+                colors.append('#ffaa00')  # Orange - true label (missed)
+            elif class_id == predicted_label:
+                colors.append('#ff4466')  # Red - wrong prediction
+            else:
+                colors.append('#4a90d9')  # Blue - other classes
+
+        # Create horizontal bar chart
+        bars = ax.barh(y_pos, probabilities * 100, color=colors, height=0.7, edgecolor='white', linewidth=0.5)
+
+        # Add percentage labels on bars
+        for i, (bar, prob) in enumerate(zip(bars, probabilities)):
+            if prob > 0.02:  # Only show label if probability > 2%
+                ax.text(bar.get_width() + 1, bar.get_y() + bar.get_height()/2,
+                       f'{prob*100:.1f}%', va='center', ha='left',
+                       color='white', fontsize=7, fontweight='bold')
+
+        # Styling
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(class_labels, fontsize=8, color='white')
+        ax.set_xlabel('Probability (%)', fontsize=9, color='white')
+        ax.set_xlim(0, 105)
+        ax.invert_yaxis()  # Highest probability at top
+        ax.tick_params(axis='x', colors='white', labelsize=7)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.spines['bottom'].set_color('white')
+        ax.spines['left'].set_color('white')
+
+        # Add legend
+        legend_text = f"True: Class {true_label} | Pred: Class {predicted_label}"
+        is_correct = true_label == predicted_label
+        legend_color = '#00ff88' if is_correct else '#ff4466'
+        ax.set_title(legend_text, fontsize=9, color=legend_color, pad=10, fontweight='bold')
+
+        plt.tight_layout()
+
+        # Convert to numpy array
+        fig.canvas.draw()
+        img = np.asarray(fig.canvas.buffer_rgba())
+        img = img[:, :, :3]  # Remove alpha channel (RGBA -> RGB)
+
+        plt.close(fig)
+
+        # Resize to exact dimensions
+        img = cv2.resize(img, (width, height))
+
+        return img
+
+    def create_visualization_with_chart(
+        self,
+        frames: np.ndarray,
+        probabilities: np.ndarray,
+        true_label: int,
+        predicted_label: int,
+        chart_width: int = 250,
+    ) -> np.ndarray:
+        """
+        Create visualization with video frames and probability chart side by side.
+
+        Args:
+            frames: Video frames of shape (T, H, W, 3)
+            probabilities: Class probabilities from model output
+            true_label: Ground truth class
+            predicted_label: Predicted class
+            chart_width: Width of the probability chart
+
+        Returns:
+            Combined frames of shape (T, H, W + chart_width, 3)
+        """
+        num_frames, height, width, channels = frames.shape
+
+        # Create the probability chart (same for all frames)
+        chart = self.create_probability_chart(
+            probabilities=probabilities,
+            true_label=true_label,
+            predicted_label=predicted_label,
+            height=height,
+            width=chart_width,
+        )
+
+        # Combine frames with chart
+        combined_frames = []
+        for frame in frames:
+            combined = np.concatenate([frame, chart], axis=1)
+            combined_frames.append(combined)
+
+        return np.array(combined_frames)
 
     def save_frames_as_video(
         self,
