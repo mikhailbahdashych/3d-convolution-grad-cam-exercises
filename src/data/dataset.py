@@ -143,26 +143,42 @@ class ExerciseVideoDataset(Dataset):
         class1_clips = [c for c in self.clips if c["label"] == 1]
         other_clips = [c for c in self.clips if c["label"] != 1]
 
+        print(f"[DEBUG] Before downsampling:")
+        print(f"  - Total clips: {len(self.clips)}")
+        print(f"  - Class 1 clips: {len(class1_clips)}")
+        print(f"  - Other clips: {len(other_clips)}")
+
         if len(class1_clips) == 0:
+            print("[DEBUG] No Class 1 clips found, skipping downsampling")
             return
 
         # Calculate target count (median of other classes)
         other_label_counts = Counter(c["label"] for c in other_clips if c["label"] != -1)
+        print(f"[DEBUG] Other class distribution: {dict(other_label_counts)}")
+
         if len(other_label_counts) == 0:
+            print("[DEBUG] No other classes found, skipping downsampling")
             return
 
         counts = list(other_label_counts.values())
         target_count = int(np.median(counts))
 
-        print(f"Downsampling Class 1: {len(class1_clips)} -> {target_count} clips")
+        print(f"[DEBUG] Downsampling Class 1: {len(class1_clips)} -> {target_count} clips")
 
         # Randomly sample from Class 1
         if len(class1_clips) > target_count:
             random.shuffle(class1_clips)
             class1_clips = class1_clips[:target_count]
+            print(f"[DEBUG] After downsampling, Class 1 has {len(class1_clips)} clips")
+        else:
+            print(f"[DEBUG] Class 1 already <= target, no downsampling needed")
 
         # Rebuild clips list
         self.clips = other_clips + class1_clips
+
+        # Verify final distribution
+        final_counts = Counter(c["label"] for c in self.clips)
+        print(f"[DEBUG] Final distribution after downsampling: {dict(final_counts)}")
 
     def _cache_all_videos(self):
         """Cache all videos in memory."""
