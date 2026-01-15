@@ -27,7 +27,9 @@ This project implements a complete pipeline for recognizing exercises from video
 
 - 3D CNN (C3D) architecture for video classification
 - Focal Loss for handling severe class imbalance
-- GradCAM visualization for model interpretability
+- Class 1 downsampling option for balanced training
+- Segmentation mask support for background removal
+- GradCAM visualization for model interpretability with probability charts
 - Support for multiple devices: CUDA (NVIDIA GPU), MPS (Apple Silicon), and CPU
 - Comprehensive evaluation metrics and confusion matrix generation
 - Modular and extensible codebase
@@ -201,6 +203,15 @@ python scripts/train.py
 # Custom configuration
 python scripts/train.py --epochs 50 --batch-size 8
 
+# With class balancing (recommended for better per-class performance)
+python scripts/train.py --epochs 50 --batch-size 8 --downsample-class1
+
+# With background removal using segmentation masks
+python scripts/train.py --epochs 50 --batch-size 8 --use-masks
+
+# Combined: balanced training with background removal
+python scripts/train.py --epochs 50 --batch-size 8 --downsample-class1 --use-masks
+
 # Specify device
 python scripts/train.py --epochs 50 --device cuda
 python scripts/train.py --epochs 50 --device mps
@@ -299,6 +310,7 @@ Outputs for each sample:
 - original.mp4: Original video clip
 - heatmap.mp4: GradCAM heatmap
 - overlay.mp4: Heatmap overlayed on video
+- overlay_with_probs.mp4: Overlay with class probability bar chart (scaled up for readable text, default 336x336 + chart)
 - side_by_side.mp4: Original and overlay side-by-side
 - metadata.txt: Sample information
 
@@ -319,6 +331,8 @@ Options:
   --device DEVICE      Device to use: cuda/mps/cpu (auto-detected if not specified)
   --epochs INT         Number of training epochs (default: 100)
   --batch-size INT     Batch size for training (default: 8)
+  --downsample-class1  Downsample Class 1 to match median count of other classes (fixes class imbalance)
+  --use-masks          Apply segmentation masks to remove background from frames during training
 ```
 
 ### Evaluation Options
@@ -335,6 +349,7 @@ Optional:
   --batch-size INT     Batch size for evaluation (default: 16)
   --device DEVICE      Device to use: cuda/mps/cpu
   --save-dir PATH      Directory to save results (default: outputs/results)
+  --use-masks          Apply segmentation masks to remove background (use if model was trained with masks)
 ```
 
 ### GradCAM Visualization Options
@@ -351,10 +366,12 @@ Optional:
   --num-samples INT       Number of samples to visualize (default: 20)
   --device DEVICE         Device to use: cuda/mps/cpu
   --save-dir PATH         Directory to save visualizations (default: outputs/visualizations)
-  --layer LAYER           Target layer for GradCAM: block3/block4/block5 (default: block5)
+  --layer LAYER           Target layer for GradCAM: block3/block4/block5 (default: block4)
   --alpha FLOAT           Overlay transparency: 0.0-1.0 (default: 0.5)
   --fps INT               Output video frame rate (default: 10)
   --misclassified-only    Only visualize misclassified samples
+  --use-masks             Apply segmentation masks to remove background (use if model was trained with masks)
+  --scale-factor INT      Scale factor for overlay_with_probs video (default: 3, scales 112x112 to 336x336)
 ```
 
 ---
@@ -494,15 +511,17 @@ python scripts/train.py --config path/to/config.yaml
 2. Clips of 16 consecutive frames are extracted using a sliding window
 3. Frames are resized to 112x112 pixels
 4. Clips are normalized using ImageNet statistics
+5. Optional: Segmentation masks can be applied to remove background (`--use-masks`)
 
 **Temporal Sampling:**
 - Training: Overlapping clips with stride=8 frames
 - Validation/Testing: Non-overlapping clips with stride=16 frames
 
 **Class Imbalance Handling:**
-1. Weighted Random Sampling: Minority classes are oversampled during training
-2. Focal Loss: Focuses learning on hard-to-classify examples
-3. Class Weights: Loss is weighted by inverse class frequency
+1. Class 1 Downsampling: Optional flag to downsample the dominant class to match other classes (`--downsample-class1`)
+2. Weighted Random Sampling: Minority classes are oversampled during training
+3. Focal Loss: Focuses learning on hard-to-classify examples
+4. Class Weights: Loss is weighted by inverse class frequency
 
 ### Training Process
 
@@ -539,16 +558,22 @@ python scripts/train.py --config path/to/config.yaml
 
 **GradCAM Process:**
 1. Forward pass through model with target class
-2. Extract activations from target layer (default: block5, last conv layer)
+2. Extract activations from target layer (default: block4 for better spatial resolution)
 3. Compute gradients of target class with respect to activations
 4. Weight activations by gradients
 5. Generate heatmap by averaging across channels
 6. Resize heatmap to input spatial dimensions
 7. Overlay on original frames using colormap
 
+**Target Layer Options:**
+- block3: 14x14 spatial resolution (highest detail, less semantic)
+- block4: 7x7 spatial resolution (default, balanced detail and semantics)
+- block5: 3x3 spatial resolution (most semantic, lowest spatial detail)
+
 **Visualization:**
 - Heatmaps are generated for each frame in the clip
-- Multiple output formats: original, heatmap, overlay, side-by-side
+- Multiple output formats: original, heatmap, overlay, overlay with probability chart, side-by-side
+- Probability chart shows class prediction confidence with true and predicted labels highlighted
 - Saved as MP4 videos for temporal analysis
 
 ### Evaluation Metrics
