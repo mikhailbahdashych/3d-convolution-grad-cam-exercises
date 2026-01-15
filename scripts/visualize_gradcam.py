@@ -34,6 +34,7 @@ def main():
     parser.add_argument("--alpha", type=float, default=0.5, help="Overlay alpha (0-1)")
     parser.add_argument("--fps", type=int, default=10, help="Output video FPS")
     parser.add_argument("--misclassified-only", action="store_true", help="Only visualize misclassified samples")
+    parser.add_argument("--use-masks", action="store_true", help="Apply segmentation masks to remove background")
     args = parser.parse_args()
 
     # Load config
@@ -69,6 +70,7 @@ def main():
         transform=val_transform,
         filter_background=True,
         cache_videos=False,
+        use_masks=args.use_masks,
     )
 
     logger.info(f"Dataset size: {len(dataset)} clips")

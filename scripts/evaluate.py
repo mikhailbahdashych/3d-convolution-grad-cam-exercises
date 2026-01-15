@@ -28,6 +28,7 @@ def main():
     parser.add_argument("--batch-size", type=int, default=None, help="Batch size")
     parser.add_argument("--device", type=str, default=None, help="Device (cuda/mps/cpu)")
     parser.add_argument("--save-dir", type=str, default="outputs/results", help="Directory to save results")
+    parser.add_argument("--use-masks", action="store_true", help="Apply segmentation masks to remove background")
     args = parser.parse_args()
 
     # Load config
@@ -66,6 +67,7 @@ def main():
         transform=val_transform,
         filter_background=True,
         cache_videos=True,
+        use_masks=args.use_masks,
     )
 
     logger.info(f"Dataset size: {len(dataset)} clips")
