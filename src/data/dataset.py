@@ -4,12 +4,13 @@ import torch
 from torch.utils.data import Dataset
 import pandas as pd
 import numpy as np
+import cv2
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict
 from collections import Counter
 import random
 
-from .utils import load_video, extract_clip, load_labels, get_subject_id
+from .utils import load_video, extract_clip, load_labels, get_subject_id, load_masks
 
 
 class ExerciseVideoDataset(Dataset):
@@ -30,6 +31,7 @@ class ExerciseVideoDataset(Dataset):
         filter_background: bool = True,
         cache_videos: bool = False,
         downsample_class1: bool = False,
+        use_masks: bool = False,
     ):
         """
         Initialize dataset.
@@ -44,6 +46,7 @@ class ExerciseVideoDataset(Dataset):
             filter_background: If True, only include clips with exercise labels (not -1)
             cache_videos: If True, cache all videos in memory (requires lots of RAM)
             downsample_class1: If True, downsample Class 1 to match other classes
+            use_masks: If True, apply segmentation masks to remove background
         """
         self.data_root = Path(data_root)
         self.split = split
@@ -54,10 +57,12 @@ class ExerciseVideoDataset(Dataset):
         self.filter_background = filter_background
         self.cache_videos = cache_videos
         self.downsample_class1 = downsample_class1
+        self.use_masks = use_masks
 
         # Paths
         self.video_dir = self.data_root / "dataset" / "anon"
         self.label_dir = self.data_root / "label"
+        self.mask_dir = self.data_root / "dataset" / "mask"
         self.split_file = self.data_root / "split.csv"
 
         # Load split info
@@ -226,6 +231,33 @@ class ExerciseVideoDataset(Dataset):
             self.clip_length,
             temporal_jitter=temporal_jitter,
         )
+
+        # Apply masks if enabled
+        if self.use_masks:
+            subject_id = clip_info["subject_id"]
+            mask_subject_dir = self.mask_dir / subject_id
+
+            if mask_subject_dir.exists():
+                # Load masks for the clip frames
+                start_idx = clip_info["start_idx"]
+                masks = []
+                for i in range(self.clip_length):
+                    frame_idx = start_idx + i + 1  # 1-indexed mask files
+                    mask_path = mask_subject_dir / f"{frame_idx:05d}_mask.png"
+
+                    if mask_path.exists():
+                        mask = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
+                        mask = cv2.resize(mask, (self.spatial_size, self.spatial_size))
+                        mask = (mask > 127).astype(np.float32)
+                    else:
+                        mask = np.ones((self.spatial_size, self.spatial_size), dtype=np.float32)
+
+                    masks.append(mask)
+
+                masks = np.array(masks)  # (T, H, W)
+
+                # Apply mask to clip: clip is (T, H, W, C), masks is (T, H, W)
+                clip = clip * masks[:, :, :, np.newaxis]
 
         # Convert to tensor: (T, H, W, C) -> (C, T, H, W)
         clip = torch.from_numpy(clip).permute(3, 0, 1, 2).float()

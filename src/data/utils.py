@@ -6,6 +6,48 @@ from pathlib import Path
 from typing import Tuple, Optional
 
 
+def load_masks(mask_dir: str, num_frames: int, target_size: Optional[Tuple[int, int]] = None) -> np.ndarray:
+    """
+    Load segmentation masks for a video.
+
+    Args:
+        mask_dir: Directory containing mask PNG files (00001_mask.png, etc.)
+        num_frames: Number of frames to load
+        target_size: Optional (height, width) to resize masks
+
+    Returns:
+        np.ndarray: Masks with shape (T, H, W), values 0 or 1
+    """
+    from pathlib import Path
+
+    mask_dir = Path(mask_dir)
+    masks = []
+
+    for i in range(1, num_frames + 1):
+        mask_path = mask_dir / f"{i:05d}_mask.png"
+
+        if mask_path.exists():
+            mask = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
+
+            # Resize if needed
+            if target_size:
+                mask = cv2.resize(mask, (target_size[1], target_size[0]))
+
+            # Normalize to 0-1
+            mask = (mask > 127).astype(np.float32)
+            masks.append(mask)
+        else:
+            # If mask doesn't exist, use all ones (no masking)
+            if target_size:
+                masks.append(np.ones((target_size[0], target_size[1]), dtype=np.float32))
+            elif masks:
+                masks.append(np.ones_like(masks[-1]))
+            else:
+                masks.append(np.ones((112, 112), dtype=np.float32))
+
+    return np.array(masks)
+
+
 def load_video(video_path: str, target_size: Optional[Tuple[int, int]] = None) -> np.ndarray:
     """
     Load video from file.
