@@ -292,6 +292,7 @@ class VideoGradCAM:
         true_label: int,
         predicted_label: int,
         chart_width: int = 250,
+        scale_factor: int = 3,
     ) -> np.ndarray:
         """
         Create visualization with video frames and probability chart side by side.
@@ -301,25 +302,38 @@ class VideoGradCAM:
             probabilities: Class probabilities from model output
             true_label: Ground truth class
             predicted_label: Predicted class
-            chart_width: Width of the probability chart
+            chart_width: Width of the probability chart (before scaling)
+            scale_factor: Factor to scale up frames and chart for better visibility
 
         Returns:
-            Combined frames of shape (T, H, W + chart_width, 3)
+            Combined frames of shape (T, scaled_H, scaled_W + scaled_chart_width, 3)
         """
         num_frames, height, width, channels = frames.shape
 
-        # Create the probability chart (same for all frames)
+        # Scale up dimensions for better text visibility
+        scaled_height = height * scale_factor
+        scaled_width = width * scale_factor
+        scaled_chart_width = chart_width * scale_factor
+
+        # Scale up frames
+        scaled_frames = []
+        for frame in frames:
+            scaled_frame = cv2.resize(frame, (scaled_width, scaled_height), interpolation=cv2.INTER_LINEAR)
+            scaled_frames.append(scaled_frame)
+        scaled_frames = np.array(scaled_frames)
+
+        # Create the probability chart at scaled size
         chart = self.create_probability_chart(
             probabilities=probabilities,
             true_label=true_label,
             predicted_label=predicted_label,
-            height=height,
-            width=chart_width,
+            height=scaled_height,
+            width=scaled_chart_width,
         )
 
         # Combine frames with chart
         combined_frames = []
-        for frame in frames:
+        for frame in scaled_frames:
             combined = np.concatenate([frame, chart], axis=1)
             combined_frames.append(combined)
 

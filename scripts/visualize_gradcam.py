@@ -35,6 +35,7 @@ def main():
     parser.add_argument("--fps", type=int, default=10, help="Output video FPS")
     parser.add_argument("--misclassified-only", action="store_true", help="Only visualize misclassified samples")
     parser.add_argument("--use-masks", action="store_true", help="Apply segmentation masks to remove background")
+    parser.add_argument("--scale-factor", type=int, default=3, help="Scale factor for overlay_with_probs video (default: 3, output will be 336x336 + chart)")
     args = parser.parse_args()
 
     # Load config
@@ -190,6 +191,7 @@ def main():
             true_label=true_label,
             predicted_label=predicted,
             chart_width=250,
+            scale_factor=args.scale_factor,
         )
         gradcam.save_frames_as_video(
             overlay_with_chart,
