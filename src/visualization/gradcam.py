@@ -339,6 +339,59 @@ class VideoGradCAM:
 
         return np.array(combined_frames)
 
+    def create_visualization_with_dynamic_chart(
+        self,
+        frames: np.ndarray,
+        probabilities_per_frame: List[np.ndarray],
+        true_labels_per_frame: List[int],
+        chart_width: int = 250,
+        scale_factor: int = 3,
+    ) -> np.ndarray:
+        """
+        Create visualization with video frames and dynamically updating probability chart.
+
+        Args:
+            frames: Video frames of shape (T, H, W, 3)
+            probabilities_per_frame: List of probability arrays, one per frame
+            true_labels_per_frame: List of true labels, one per frame
+            chart_width: Width of the probability chart (before scaling)
+            scale_factor: Factor to scale up frames and chart for better visibility
+
+        Returns:
+            Combined frames of shape (T, scaled_H, scaled_W + scaled_chart_width, 3)
+        """
+        num_frames, height, width, channels = frames.shape
+
+        # Scale up dimensions for better text visibility
+        scaled_height = height * scale_factor
+        scaled_width = width * scale_factor
+        scaled_chart_width = chart_width * scale_factor
+
+        # Combine frames with dynamic chart
+        combined_frames = []
+        for i, frame in enumerate(frames):
+            # Scale up frame
+            scaled_frame = cv2.resize(frame, (scaled_width, scaled_height), interpolation=cv2.INTER_LINEAR)
+
+            # Get probabilities and label for this frame
+            probs = probabilities_per_frame[i] if i < len(probabilities_per_frame) else probabilities_per_frame[-1]
+            true_label = true_labels_per_frame[i] if i < len(true_labels_per_frame) else true_labels_per_frame[-1]
+            predicted_label = int(np.argmax(probs))
+
+            # Create chart for this frame
+            chart = self.create_probability_chart(
+                probabilities=probs,
+                true_label=true_label,
+                predicted_label=predicted_label,
+                height=scaled_height,
+                width=scaled_chart_width,
+            )
+
+            combined = np.concatenate([scaled_frame, chart], axis=1)
+            combined_frames.append(combined)
+
+        return np.array(combined_frames)
+
     def save_frames_as_video(
         self,
         frames: np.ndarray,
