@@ -20,7 +20,7 @@ from src.training.losses import build_loss_fn
 from src.training.trainer import Trainer
 
 
-def create_data_loaders(config, downsample_class1=False, use_masks=False):
+def create_data_loaders(config, downsample_class1=False, use_masks=False, mask_alpha=1.0):
     """Create training and validation data loaders."""
     logger = setup_logger("data")
 
@@ -41,6 +41,7 @@ def create_data_loaders(config, downsample_class1=False, use_masks=False):
         cache_videos=True,  # Cache videos in RAM for much faster loading
         downsample_class1=downsample_class1,
         use_masks=use_masks,
+        mask_alpha=mask_alpha,
     )
 
     val_dataset = ExerciseVideoDataset(
@@ -53,6 +54,7 @@ def create_data_loaders(config, downsample_class1=False, use_masks=False):
         filter_background=True,
         cache_videos=True,  # Cache videos in RAM for much faster loading
         use_masks=use_masks,
+        mask_alpha=mask_alpha,
     )
 
     logger.info(f"Train dataset: {len(train_dataset)} clips")
@@ -182,6 +184,7 @@ def main():
     parser.add_argument("--batch-size", type=int, default=None, help="Batch size")
     parser.add_argument("--downsample-class1", action="store_true", help="Downsample Class 1 to match other classes")
     parser.add_argument("--use-masks", action="store_true", help="Apply segmentation masks to remove background")
+    parser.add_argument("--mask-alpha", type=float, default=1.0, help="Mask strength: 1.0=full mask, 0.7=30%% background visible")
     args = parser.parse_args()
 
     # Load configuration
@@ -219,9 +222,9 @@ def main():
     if args.downsample_class1:
         logger.info("Class 1 downsampling ENABLED - balancing class distribution")
     if args.use_masks:
-        logger.info("Segmentation masks ENABLED - removing background from frames")
+        logger.info(f"Segmentation masks ENABLED - mask_alpha={args.mask_alpha} ({(1-args.mask_alpha)*100:.0f}% background visible)")
     train_loader, val_loader, class_weights = create_data_loaders(
-        config, downsample_class1=args.downsample_class1, use_masks=args.use_masks
+        config, downsample_class1=args.downsample_class1, use_masks=args.use_masks, mask_alpha=args.mask_alpha
     )
 
     # Create model
