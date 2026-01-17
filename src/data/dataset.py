@@ -32,6 +32,7 @@ class ExerciseVideoDataset(Dataset):
         cache_videos: bool = False,
         downsample_class1: bool = False,
         use_masks: bool = False,
+        mask_alpha: float = 1.0,
     ):
         """
         Initialize dataset.
@@ -47,6 +48,7 @@ class ExerciseVideoDataset(Dataset):
             cache_videos: If True, cache all videos in memory (requires lots of RAM)
             downsample_class1: If True, downsample Class 1 to match other classes
             use_masks: If True, apply segmentation masks to remove background
+            mask_alpha: Mask strength (1.0=full mask/black background, 0.7=30% background visible)
         """
         self.data_root = Path(data_root)
         self.split = split
@@ -58,6 +60,7 @@ class ExerciseVideoDataset(Dataset):
         self.cache_videos = cache_videos
         self.downsample_class1 = downsample_class1
         self.use_masks = use_masks
+        self.mask_alpha = mask_alpha
 
         # Paths
         self.video_dir = self.data_root / "dataset" / "anon"
@@ -256,8 +259,12 @@ class ExerciseVideoDataset(Dataset):
 
                 masks = np.array(masks)  # (T, H, W)
 
-                # Apply mask to clip: clip is (T, H, W, C), masks is (T, H, W)
-                clip = clip * masks[:, :, :, np.newaxis]
+                # Apply soft mask to clip: clip is (T, H, W, C), masks is (T, H, W)
+                # soft_mask = alpha * binary_mask + (1 - alpha) where alpha=1.0 is full mask
+                # When mask=1 (person): pixel * 1.0 = unchanged
+                # When mask=0 (background): pixel * (1 - alpha) = dimmed
+                soft_mask = self.mask_alpha * masks[:, :, :, np.newaxis] + (1 - self.mask_alpha)
+                clip = clip * soft_mask
 
         # Convert to tensor: (T, H, W, C) -> (C, T, H, W)
         clip = torch.from_numpy(clip).permute(3, 0, 1, 2).float()

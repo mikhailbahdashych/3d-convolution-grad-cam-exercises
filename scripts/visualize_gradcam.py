@@ -38,6 +38,7 @@ def process_long_sample(
     fps: int = 30,
     scale_factor: int = 3,
     use_masks: bool = False,
+    mask_alpha: float = 1.0,
     mask_dir: Path = None,
     subject_id: str = None,
     logger=None,
@@ -59,6 +60,7 @@ def process_long_sample(
         fps: Output video FPS
         scale_factor: Scale factor for output
         use_masks: Whether to apply segmentation masks
+        mask_alpha: Mask strength (1.0=full mask, 0.7=30% background visible)
         mask_dir: Directory containing masks
         subject_id: Subject ID for mask lookup
         logger: Logger instance
@@ -105,7 +107,7 @@ def process_long_sample(
         # Get clip frames
         clip = frames[clip_start:clip_end].copy()  # (T, H, W, C)
 
-        # Apply masks if enabled
+        # Apply soft masks if enabled
         if use_masks and mask_dir is not None and subject_id is not None:
             mask_subject_dir = mask_dir / subject_id
             if mask_subject_dir.exists():
@@ -115,8 +117,10 @@ def process_long_sample(
                     if mask_path.exists():
                         mask = cv2.imread(str(mask_path), cv2.IMREAD_GRAYSCALE)
                         mask = cv2.resize(mask, (spatial_size, spatial_size))
-                        mask = (mask > 127).astype(np.float32)
-                        clip[i] = clip[i] * mask[:, :, np.newaxis]
+                        binary_mask = (mask > 127).astype(np.float32)
+                        # Apply soft mask: person 100%, background (1-mask_alpha)%
+                        soft_mask = mask_alpha * binary_mask[:, :, np.newaxis] + (1 - mask_alpha)
+                        clip[i] = clip[i] * soft_mask
 
         # Store original first frame of this window
         all_original_frames.append(clip[0].copy())
@@ -229,6 +233,7 @@ def main():
     parser.add_argument("--fps", type=int, default=10, help="Output video FPS")
     parser.add_argument("--misclassified-only", action="store_true", help="Only visualize misclassified samples")
     parser.add_argument("--use-masks", action="store_true", help="Apply segmentation masks to remove background")
+    parser.add_argument("--mask-alpha", type=float, default=1.0, help="Mask strength: 1.0=full mask, 0.7=30%% background visible")
     parser.add_argument("--scale-factor", type=int, default=3, help="Scale factor for overlay_with_probs video (default: 3, output will be 336x336 + chart)")
     parser.add_argument("--long-sample", action="store_true", help="Generate longer video samples with dynamic probability updates")
     parser.add_argument("--sample-duration", type=int, default=300, help="Duration of long samples in frames (default: 300 = 10 seconds at 30fps)")
@@ -270,6 +275,7 @@ def main():
         filter_background=True,
         cache_videos=False,
         use_masks=args.use_masks,
+        mask_alpha=args.mask_alpha,
     )
 
     logger.info(f"Dataset size: {len(dataset)} clips")
@@ -362,6 +368,7 @@ def main():
                 fps=args.fps,
                 scale_factor=args.scale_factor,
                 use_masks=args.use_masks,
+                mask_alpha=args.mask_alpha,
                 mask_dir=mask_dir,
                 subject_id=subject_id,
                 logger=logger,
