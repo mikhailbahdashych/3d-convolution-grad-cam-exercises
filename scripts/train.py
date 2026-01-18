@@ -230,6 +230,12 @@ def main():
     # Create model
     model = create_model(config, device)
 
+    # Multi-GPU support with DataParallel
+    if torch.cuda.device_count() > 1:
+        logger.info(f"Multi-GPU training ENABLED - using {torch.cuda.device_count()} GPUs")
+        model = torch.nn.DataParallel(model)
+    model = model.to(device)
+
     # Create loss function
     logger.info("Creating loss function...")
     class_weights = class_weights.to(device)

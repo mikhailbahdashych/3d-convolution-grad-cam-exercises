@@ -30,9 +30,12 @@ def save_checkpoint(
     Path(save_dir).mkdir(parents=True, exist_ok=True)
     save_path = Path(save_dir) / filename
 
+    # Handle DataParallel models - save the underlying model
+    model_to_save = model.module if hasattr(model, "module") else model
+
     checkpoint = {
         "epoch": epoch,
-        "model_state_dict": model.state_dict(),
+        "model_state_dict": model_to_save.state_dict(),
         "optimizer_state_dict": optimizer.state_dict(),
         "metrics": metrics,
     }
@@ -67,7 +70,9 @@ def load_checkpoint(
 
     checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
 
-    model.load_state_dict(checkpoint["model_state_dict"])
+    # Handle DataParallel models - load into the underlying model
+    model_to_load = model.module if hasattr(model, "module") else model
+    model_to_load.load_state_dict(checkpoint["model_state_dict"])
 
     if optimizer and "optimizer_state_dict" in checkpoint:
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
